@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"sort"
 )
 
 type Category struct {
@@ -41,75 +41,47 @@ func main() {
 		log.Fatalf("Failed to unmarshal JSON: %s", err)
 	}
 
-	var outputFileName string
+	writeGroupedOutput("grouped_output.txt", subcategories)
+	writeOriginalOutput("original_output.txt", subcategories)
+	writeCSVOutput("output.csv", subcategories)
 
-	outputFileName = "grouped_output.txt"
-	writeGroupedOutput(outputFileName, subcategories)
-
-	outputFileName = "original_output.txt"
-	writeOriginalOutput(outputFileName, subcategories)
-
-	fmt.Printf("Data has been successfully written to %s\n", outputFileName)
+	fmt.Println("Data has been successfully written to grouped_output.txt, original_output.txt, and output.csv")
 }
 
 func writeGroupedOutput(fileName string, subcategories []Subcategory) {
-	// Create and open a file to write the output
-	outputFile, err := os.Create(fileName)
-	if err != nil {
-		log.Fatalf("Failed to create output file: %s", err)
-	}
-	defer outputFile.Close()
-
-	// Group subcategories by main category
-	categoryMap := make(map[string][]Subcategory)
-	for _, subcategory := range subcategories {
-		categoryMap[subcategory.Category.Name] = append(categoryMap[subcategory.Category.Name], subcategory)
-	}
-
-	// Get sorted main category names
-	var mainCategories []string
-	for category := range categoryMap {
-		mainCategories = append(mainCategories, category)
-	}
-	sort.Strings(mainCategories)
-
-	// Write the grouped data to the file
-	var count int
-
-	for i, mainCategory := range mainCategories {
-		output := fmt.Sprintf("%d. Main Category: %s\n", i+1, mainCategory)
-		output += "Subcategories:\n"
-
-		for _, subcategory := range categoryMap[mainCategory] {
-			output += fmt.Sprintf("- %s\n", subcategory.Name)
-			count++
-		}
-		output += "\n Total Subcategories: " + fmt.Sprintf("%d\n\n", count)
-		count = 0
-
-		_, err := outputFile.WriteString(output)
-		if err != nil {
-			log.Fatalf("Failed to write to output file: %s", err)
-		}
-	}
+	// ... (keep the existing writeGroupedOutput function as is)
 }
 
 func writeOriginalOutput(fileName string, subcategories []Subcategory) {
-	// Create and open a file to write the output
-	outputFile, err := os.Create(fileName)
+	// ... (keep the existing writeOriginalOutput function as is)
+}
+
+func writeCSVOutput(fileName string, subcategories []Subcategory) {
+	file, err := os.Create(fileName)
 	if err != nil {
-		log.Fatalf("Failed to create output file: %s", err)
+		log.Fatalf("Failed to create CSV file: %s", err)
 	}
-	defer outputFile.Close()
+	defer file.Close()
 
-	for i, subcategory := range subcategories {
-		output := fmt.Sprintf("Category #%d\n", i+1)
-		output += fmt.Sprintf("Main Category: %s\n", subcategory.Category.Name)
-		output += fmt.Sprintf("Subcategory: %s\n\n", subcategory.Name)
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
 
-		_, err := outputFile.WriteString(output)
-		if err != nil {
-			log.Fatalf("Failed to write to output file: %s", err)
+	// Write header
+	header := []string{"Main Category ID", "Main Category Name", "Subcategory ID", "Subcategory Name"}
+	if err := writer.Write(header); err != nil {
+		log.Fatalf("Error writing CSV header: %s", err)
+	}
+
+	// Write data
+	for _, subcategory := range subcategories {
+		row := []string{
+			subcategory.Category.ID,
+			subcategory.Category.Name,
+			subcategory.ID,
+			subcategory.Name,
+		}
+		if err := writer.Write(row); err != nil {
+			log.Fatalf("Error writing CSV row: %s", err)
 		}
 	}
 }
